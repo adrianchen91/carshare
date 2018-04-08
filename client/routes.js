@@ -14,6 +14,7 @@ import About from './modules/About/About';
 import Booking from './modules/Booking/Booking';
 import Locations from './modules/Locations/Locations';
 import { Profile } from './modules/Profile/Profile';
+import PaymentDetails from './modules/PaymentDetails/PaymentDetails';
 
 // require.ensure polyfill for node
 if (typeof require.ensure !== 'function') {
@@ -38,5 +39,6 @@ export default (
 		<Route path="booking" component={Booking} />
     <Route path="locations" component={Locations}/>
 		<Route path="profile" component={Profile} />
+    <Route path='paymentDetails' component={PaymentDetails} />
 	</Route>
 );
