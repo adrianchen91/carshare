@@ -50,7 +50,7 @@ const changePaymentDetails = function(req, res) {
     })
     // finally, send response
     .then((user) => { res.status(200).send(user); })
-    .catch((err) => { res.status(500).send(err); })
+    .catch((err) => { res.status(500).send(err); });
 
 }
 
