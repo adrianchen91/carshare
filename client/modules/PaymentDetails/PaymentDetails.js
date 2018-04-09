@@ -8,7 +8,7 @@ import {
   Input,
   Form,
   FormFeedback,
-  Dropdown,
+  ButtonDropdown,
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
@@ -28,6 +28,8 @@ const selYears = Array.from([0, 1, 2, 3, 4], x => (yearNow + x).toFixed());
 const selMonths = [
   '01', '02', '03', '04', '05', '06',
   '07', '08', '09', '10', '11', '12']
+
+const nonDigit = /[^0-9]/g;
 
 class PaymentDetails extends Component
 {
@@ -49,22 +51,25 @@ class PaymentDetails extends Component
         cardNumber: false,
         nameOnCard: false,
         ccv: false,
-        expiryMonth: false,
-        expyryYear: false,
-      valid: {},
+        expiry: false,
       },
     };
   }
 
+  valids = {};
+
   validate() {
-    let cardType = ccCheck.determineCardType(this.state.cardNumber);
+    const cardNumber = this.state.cardNumber.replace(nonDigit, '');
+    const cardType = ccCheck.determineCardType(cardNumber);
+    const ccv = this.state.ccv.replace(nonDigit, '');
 
     const valids = {
-      cardNumber: ccCheck.luhn(this.state.cardNumber) && cardType,
-      nameOnCard: this.state.nameOnCard.length < 1,
-      ccv: ccCheck.doesCvvMatchType(this.state.ccv, cardType),
-      expiry: ccCheck.isExpired(this.state.expiryMonth, this.state.expiryYear),
+      cardNumber: cardType && ccCheck.luhn(cardNumber),
+      nameOnCard: this.state.nameOnCard.length > 0,
+      ccv: ccCheck.doesCvvMatchType(ccv, cardType),
+      expiry: !ccCheck.isExpired(this.state.expiryMonth, this.state.expiryYear),
     }
+    console.log(valids);
     return valids;
   }
 
@@ -76,6 +81,7 @@ class PaymentDetails extends Component
     props.touched = this.state.touched;
     props.touched [field] = true;
     this.setState(props);
+    console.log(this.state.touched);
   }
 
   handleExpiryMonthChange(evt) {
@@ -83,8 +89,9 @@ class PaymentDetails extends Component
       expiryMonth: evt.target.innerText,
       expMonthDropdownOpen: false }
     props.touched = this.state.touched;
-    props.touched.expiryMonth = true;
+    props.touched.expiry = true;
     this.setState(props);
+    console.log(this.state.touched);
   }
 
   handleExpiryYearChange = (evt) => {
@@ -92,31 +99,34 @@ class PaymentDetails extends Component
       expiryYear: evt.target.innerText,
       expYearDropdownOpen: false }
     props.touched = this.state.touched;
-    props.touched.expiryYear = true;
+    props.touched.expiry = true;
     this.setState(props);
+    console.log(this.state.touched);
   }
 
   toggleExpMonthDropdown() {
     this.setState({
       expMonthDropdownOpen: !this.state.expMonthDropdownOpen,
     });
-    this.handleBlur('expiryMonth');
   }
 
   toggleExpYearDropdown() {
     this.setState({
       expYearDropdownOpen: !this.state.expYearDropdownOpen,
     });
-    this.handleBlur('expiryYear');
   }
 
   handleSubmit(evt) {
     evt.preventDefault();
+
+    const cardNumber = this.state.cardNumber.replace(nonDigit, '');
+    const ccv = this.state.ccv.replace(nonDigit, '');
+
     if (this.formIsValid()) {
       http.client().put('/paymentDetals/change', {
-        cardNumber: this.state.cardNumber,
+        cardNumber: cardNumber,
         nameOnCard: this.state.nameOnCard,
-        ccv: this.state.ccv,
+        ccv: ccv,
         expiryMonth: Number(this.state.expiryMonth),
         expiryYear: Number(this.state.expiryYear),
       })
@@ -128,11 +138,11 @@ class PaymentDetails extends Component
   isValid(key) {
     const valid = this.valids[key];
     const touched = this.state.touched[key];
-    return valid && touched;
+    return valid || !touched;
   }
 
   formIsValid() {
-    return true;
+    return Object.keys(this.valids).some(field => this.valids[field] === false);
   }
 
   mapUserToModel(user)
@@ -140,15 +150,15 @@ class PaymentDetails extends Component
     if (user)
     {
       this.setState({
-        cardNumber: user.creditCard && user.creditCard.cardnumber ?
-          user.creditCard.cardnumber : '',
+        cardNumber: user.creditCard && user.creditCard.cardNumber ?
+          user.creditCard.cardNumber : '',
         nameOnCard: user.creditCard && user.creditCard.nameOnCard ?
           user.creditCard.nameOnCard : '',
         ccv: user.creditCard && user.creditCard.ccv ? user.creditCard.ccv : '',
         expiryMonth: user.creditCard && user.creditCard.expiryMonth ?
-          user.creditCard.ccv : '',
+          user.creditCard.expiryMonth : '',
         expiryYear: user.creditCard && user.creditCard.expiryYear ?
-          user.creditCard.ccv : '',
+          user.creditCard.expiryYear : '',
       })
     }
   }
@@ -158,46 +168,48 @@ class PaymentDetails extends Component
     http
       .client()
       .get('/paymentDetails/my')
-      .then((res) => { this.mapUserToModel(res) })
+      .then((res) => { this.mapUserToModel(res.data) })
       .catch((err) => { console.log(err) });
   }
 
   render()
   {
-    this.errors = this.validate();
+    this.valids = this.validate();
     const isDisabled = !this.formIsValid();
 
     return (
-      <Row><Col>
-        <h1>Payment Details</h1>
+      <div className={styles.body}>
+        <h1 className={styles.title}>Payment Details</h1>
 
         <Form
           className="novalidate"
           onSubmit={this.handleSubmit.bind(this)}>
           <Row>
-            <FormGroup>
-              <Label for="cardNumber">Credit Card Number</Label>
-              <Input
-                type="text"
-                name="cardNumber"
-                id="cardNumber"
-                placeholder="Card number"
-                className={isValid('cardNumber') ? '' : 'is-invalid'}
-                value={this.state.cardNumber}
-                onChange={this.handleinputChange.bind(this)}
-              />
-              <FormFeedback>
-                A valid credit card number is required.
-              </FormFeedback>
-            </FormGroup>
+            <Col>
+              <FormGroup>
+                <Label for="cardNumber">Credit Card Number</Label>
+                <Input
+                  type="text"
+                  name="cardNumber"
+                  id="cardNumber"
+                  placeholder="Card number"
+                  className={this.isValid('cardNumber') ? '' : 'is-invalid'}
+                  value={this.state.cardNumber}
+                  onChange={this.handleInputChange.bind(this)}
+                />
+                <FormFeedback>
+                  A valid credit card number is required.
+                </FormFeedback>
+              </FormGroup>
+            </Col>
           </Row>
 
           <Row>
-            <Col>
+            <Col xs="7">
               <FormGroup>
                 <Label for="expiry">Expiry</Label>
-
-                <Dropdown
+                <div>
+                <ButtonDropdown
                   isOpen={this.state.expMonthDropdownOpen}
                   toggle={this.toggleExpMonthDropdown.bind(this)}
                 >
@@ -209,15 +221,15 @@ class PaymentDetails extends Component
                     {selMonths.map(mm => (
                       <DropdownItem
                         key={mm}
-                        onClick={this.handleExpiryChange.bind(this)}
+                        onClick={this.handleExpiryMonthChange.bind(this)}
                       >
                         {mm}
                       </DropdownItem>
                     ))}
                   </DropdownMenu>
-                </Dropdown>
-
-                <Dropdown>
+                </ButtonDropdown>
+                &nbsp;/&nbsp;
+                <ButtonDropdown
                   isOpen={this.state.expYearDropdownOpen}
                   toggle={this.toggleExpYearDropdown.bind(this)}
                 >
@@ -229,19 +241,19 @@ class PaymentDetails extends Component
                   {selYears.map(yyyy => (
                     <DropdownItem
                       key={yyyy}
-                      onClick={this.handleExpiryChange.bind(this)}
+                      onClick={this.handleExpiryYearChange.bind(this)}
                     >
                       {yyyy}
                     </DropdownItem>
                   ))}
                   </DropdownMenu>
-                </Dropdown>
-
+                </ButtonDropdown>
+                </div>
                 <Input
                   type="hidden"
                   name="expiry"
                   id="expiry"
-                  className={isValid('expiry') ? '' : 'is-invalid'}
+                  className={this.isValid('expiry') ? '' : 'is-invalid'}
                   />
                 <FormFeedback>
                   Card should not be expired. A valid expiry date is required.
@@ -249,7 +261,7 @@ class PaymentDetails extends Component
               </FormGroup>
             </Col>
 
-            <Col>
+            <Col xs="5">
               <FormGroup>
                 <Label for="ccv">CVV</Label>
                 <Input
@@ -257,8 +269,9 @@ class PaymentDetails extends Component
                   name="ccv"
                   id="ccv"
                   placeholder="CVV"
-                  className={isValid('cvv') ? '' : 'is-invalid'}
-                  onChange={this.handleCcvChange.bind(this)}/>
+                  className={this.isValid('ccv') ? '' : 'is-invalid'}
+                  value={this.state.ccv}
+                  onChange={this.handleInputChange.bind(this)}/>
                 <FormFeedback>
                   A valid CVV is required.
                 </FormFeedback>
@@ -274,8 +287,10 @@ class PaymentDetails extends Component
                   type="text"
                   name="nameOnCard"
                   id="nameOnCard"
-                  placeHolder="Name on card"
-                  onChange={this.handleNameOnCardChange.bind(this)}/>
+                  placeholder="Name on card"
+                  className={this.isValid('nameOnCard') ? '' : 'is-invalid'}
+                  value={this.state.nameOnCard}
+                  onChange={this.handleInputChange.bind(this)}/>
                 <FormFeedback>
                   Name on card is required.
                 </FormFeedback>
@@ -297,20 +312,21 @@ class PaymentDetails extends Component
             </Col>
           </Row>
         </Form>
-      </Col></Row>
+      </div>
     )
   }
 
-  updated()
-  {
-    return (
-      <Alert color="success">
-        <h4 className="alert-heading">Payment details have been updated!</h4>
-        <p><Link to="/profile">Click here to return to Profile</Link></p>
-        <p><Link to="/">Click here to return home</Link></p>
-      </Alert>
-    );
-  }
+//   updated()
+//   {
+//     return (
+//       <Alert color="success">
+//         <h4 className="alert-heading">Payment details have been updated!</h4>
+//         <p><Link to="/profile">Click here to return to Profile</Link></p>
+//         <p><Link to="/">Click here to return home</Link></p>
+//       </Alert>
+//     );
+//   }
+//
 
 }
 
