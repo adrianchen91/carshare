@@ -45,10 +45,12 @@ const account = require('./routes/account.routes');
 const profile = require('./routes/profile.routes');
 const cars = require('./routes/cars.routes');
 const booking = require('./routes/booking.routes');
+const paymentDetails = require('./routes/paymentDetails.routes');
 app.use('/api/account', account);
 app.use('/api/profile', profile);
 app.use('/api/cars', cars);
 app.use('/api/booking', booking);
+app.use('/api/paymentDetails', paymentDetails);
 
 // Render Initial HTML
 const renderFullPage = (html, initialState) => {
@@ -65,7 +67,7 @@ const renderFullPage = (html, initialState) => {
         <meta charset="utf-8"/>
         <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        
+
         ${isProdMode ? `<link rel='stylesheet' href='${assetsManifest['/app.css']}' />` : ''}
         <link href='https://fonts.googleapis.com/css?family=Lato:400,300,700' rel='stylesheet' type='text/css'/>
         <link rel="shortcut icon" href="http://res.cloudinary.com/hashnode/image/upload/v1455629445/static_imgs/mern/mern-favicon-circle-fill.png" type="image/png" />
